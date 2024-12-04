@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { countryList } from '../code.js'
 import '../App.css'
 
@@ -14,23 +14,32 @@ const CurrencyForm = () => {
 
     function currencyConversion() {
         if (amount === '' || amount < 1) {
-            setErrorMsg('Please enter a valid amount.')
+            setErrorMsg('Please enter a valid amount.');
+            return; // Exit early if input is invalid
         }
-        else {
-            if (errorMsg) { setErrorMsg('') }
-            try {
-                setLoading(true)
-                fetch(`https://v6.exchangerate-api.com/v6/5d7702e7fa94b9672dc3d584/pair/${fromSelected}/${toSelected}/${amount}`)
-                    .then((res) => res.json())
-                    .then((data) => {
-                        setFinalResult(`${amount} ${fromSelected} = ${data.conversion_result} ${toSelected}`)
-                    })
-            } catch (error) {
-                throw new Error('Something went wrong.')
-            }
-        }
+    
+        setErrorMsg(''); // Clear any previous error messages
+        setLoading(true); // Start loading before fetching data
+    
+        fetch(`https://v6.exchangerate-api.com/v6/5d7702e7fa94b9672dc3d584/pair/${fromSelected}/${toSelected}/${amount}`)
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to fetch data from API');
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setFinalResult(`${amount} ${fromSelected} = ${data.conversion_result} ${toSelected}`);
+            })
+            .catch((error) => {
+                console.error('Error fetching currency data:', error);
+                // setErrorMsg('Something went wrong. Please try again.');
+            })
+            .finally(() => {
+                setLoading(false); // Ensure loading is reset regardless of success or failure
+            });
     }
-    if (loading) { setLoading(false) }
+    
     return (
         <section className="currency-converter-container">
             <h1 className='heading'>Currency Converter</h1>
@@ -38,7 +47,7 @@ const CurrencyForm = () => {
                 <div className="input-container">
                     <label htmlFor='input'>Amount:</label>
                     <input type="number" id='input' placeholder="Enter Amount" value={amount} onChange={(e) => {
-                        if (amount > 0) { setErrorMsg('') }
+                        if (e.target.value > 0) { setErrorMsg('') }
                         setAmount(e.target.value)
                     }} />
                 </div>
@@ -94,6 +103,7 @@ const CurrencyForm = () => {
                         currencyConversion()
                     }} disabled={loading} >{loading ? 'Converting...' : 'Get Exchange Rate'}</button>
                 </div>
+                
                 <div className="result">
                     {finalResult && (<span>{finalResult}</span>)}
                 </div>
